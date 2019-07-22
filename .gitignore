@@ -1,0 +1,6 @@
+# Ignore Files
+# ...
+
+# Igoner Directories
+.venv/
+.vscode/
