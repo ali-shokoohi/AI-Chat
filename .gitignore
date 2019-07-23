@@ -1,5 +1,5 @@
 # Ignore Files
-# ...
+logs/*
 
 # Igoner Directories
 .venv/
