@@ -1,8 +1,9 @@
 from telegram.client import Telegram
 from datetime import datetime
+from data_manager import Data
 import logging
 
-logging.basicConfig(filename='./logs/app.log', filemode='a', format='%(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(filename='./logs/app.log', filemode='w', format='%(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("root")
 logger.warning('This is a Warning')
 
@@ -15,6 +16,8 @@ tg = Telegram(
 
 me = 715550983 #Bot ID
 
+data_m = Data()
+
 data = {}
 
 def main():
@@ -26,63 +29,18 @@ def main():
 
     #New data
     def new_data(message):
-        """
-        data = {
-            message_id:{
-                date: 2019-07-17 5123546,
-                message_text: SOME_TEXT,
-                replies: []
-            }
-        }
-        """
         try:
             message_id = message["id"]
             message_date = message["date"]
+            reply_to_message_id = message["reply_to_message_id"]
             message_text = message["content"]["text"]["text"]
-            data[message_id] = dict()
-            data[message_id]["date"] = message_date
-            data[message_id]["text"] = message_text
-            data[message_id]["replies"] = list()
+            data_m.insert(id=message_id, text=message_text,
+                            date=message_date, reply_to_id=reply_to_message_id)
 
             return True
         except Exception as e:
             logger.error("A exeption has been found:", exc_info=True)
             return False
-
-    #Insert new data message
-    def insert_data(to_message, message):
-        """
-        data = {
-            to_message_id:{
-                date: 2019-07-17 5123546,
-                message_text: ToMessageText,
-                replies: [
-                    {
-                        id: message_id,
-                        text: message_text
-                    }
-                ]
-            }
-        }
-        """
-        try:
-            to_message_id = to_message["id"]
-            message_id = message["id"]
-            message_text = message["content"]["text"]["text"]
-
-            if to_message_id not in data:
-                new_data(to_message)
-
-            reply = dict()
-            reply["id"] = message_id
-            reply["text"] = message_text
-            data[to_message_id]["replies"].append(reply)
-            
-            return True
-        except Exception as e:
-            logger.error("A exeption has been found:", exc_info=True)
-            return False
-        
 
     #Check the chat_id is for groups or private chats
     def is_private(chat_id):
@@ -105,10 +63,6 @@ def main():
             logger.warning(f"A text message has been received from {chat_id} at {datetime.now()} and that is:\n{message_text}")
             if reply_to_message_id > 0:
                 answer = "Hello human as reply!"
-                to_message = tg.get_message(chat_id=chat_id, message_id=reply_to_message_id)
-                to_message.wait()
-                to_message = to_message.update
-                insert_data(to_message=to_message, message=message)
             else:
                 answer = "Hello human!"
             
