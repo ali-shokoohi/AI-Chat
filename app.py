@@ -21,33 +21,62 @@ def main():
 
     #New data
     def new_data(message):
-        message_id = message["id"]
-        message_date = message["date"]
-        message_text = message["content"]["text"]["text"]
-        data[message_id] = dict()
-        data[message_id]["date"] = message_date
-        data[message_id]["text"] = message_text
-        data[message_id]["replies"] = list()
+        """
+        data = {
+            message_id:{
+                date: 2019-07-17 5123546,
+                message_text: SOME_TEXT,
+                replies: []
+            }
+        }
+        """
+        try:
+            message_id = message["id"]
+            message_date = message["date"]
+            message_text = message["content"]["text"]["text"]
+            data[message_id] = dict()
+            data[message_id]["date"] = message_date
+            data[message_id]["text"] = message_text
+            data[message_id]["replies"] = list()
 
-        return True
+            return True
+        except Exception as e:
+            print("A exeption has been found:", e)
+            return False
 
     #Insert new data message
     def insert_data(to_message, message):
-        to_message_id = to_message["id"]
-        message_id = message["id"]
-        to_message_date = to_message["date"]
-        to_message_text = to_message["content"]["text"]["text"]
-        message_text = message["content"]["text"]["text"]
+        """
+        data = {
+            to_message_id:{
+                date: 2019-07-17 5123546,
+                message_text: ToMessageText,
+                replies: [
+                    {
+                        id: message_id,
+                        text: message_text
+                    }
+                ]
+            }
+        }
+        """
+        try:
+            to_message_id = to_message["id"]
+            message_id = message["id"]
+            message_text = message["content"]["text"]["text"]
 
-        if to_message_id not in data:
-            new_data(to_message)
+            if to_message_id not in data:
+                new_data(to_message)
 
-        reply = dict()
-        reply["id"] = message_id
-        reply["text"] = message_text
-        data[to_message_id]["replies"].append(reply)
-        
-        return True
+            reply = dict()
+            reply["id"] = message_id
+            reply["text"] = message_text
+            data[to_message_id]["replies"].append(reply)
+            
+            return True
+        except Exception as e:
+            print("A exeption has been found:", e)
+            return False
         
 
     #Check the chat_id is for groups or private chats
@@ -64,11 +93,11 @@ def main():
         user_id = update["message"]["sender_user_id"]
         chat_id = update["message"]["chat_id"]
         message = update["message"]
-        if (user_id != me) and is_private(chat_id) and new_data(message):
+        if (user_id != me) and new_data(message):
             reply_to_message_id = message["reply_to_message_id"]
             message_content = message["content"].get("text", {})
             message_text = message_content.get("text", "").lower()
-            print(f"A text message has been received from {chat_id} at {datetime.now()} and that is:\n{message_text}")
+#            print(f"A text message has been received from {chat_id} at {datetime.now()} and that is:\n{message_text}")
             if reply_to_message_id > 0:
                 answer = "Hello human as reply!"
                 to_message = tg.get_message(chat_id=chat_id, message_id=reply_to_message_id)
@@ -77,30 +106,34 @@ def main():
                 insert_data(to_message=to_message, message=message)
             else:
                 answer = "Hello human!"
-            tg.send_message(
-                chat_id=chat_id,
-                text=answer,
-            )
+            
+            if is_private(chat_id):
+                tg.send_message(
+                    chat_id=chat_id,
+                    text=answer,
+                )
     
     #Photo message handler
     def photo_handler(update):
         user_id = update["message"]["sender_user_id"]
         chat_id = update["message"]["chat_id"]
-        if (user_id != me) and is_private(chat_id):
+        if (user_id != me):
             photo_content = update["message"]["content"].get("photo", {})
             photo_id = photo_content.get("id", "").lower()
-            print(f"A photo message has been received from {chat_id} at {datetime.now()} and ID of that is:\n{photo_id}")
-            tg.send_message(
-                chat_id=chat_id,
-                text="Nice picture human!",
-            )
+#            print(f"A photo message has been received from {chat_id} at {datetime.now()} and ID of that is:\n{photo_id}")
+            
+            if is_private(chat_id):
+                tg.send_message(
+                    chat_id=chat_id,
+                    text="Nice picture human!",
+                )
     
     #Unknown message handler
     def unknown_handler(update):
         user_id = update["message"]["sender_user_id"]
         chat_id = update["message"]["chat_id"]
         if (user_id != me) and is_private(chat_id):
-            print(f"A unknown message has been received from {chat_id} at {datetime.now()}")
+#            print(f"A unknown message has been received from {chat_id} at {datetime.now()}")
             tg.send_message(
                 chat_id=chat_id,
                 text="What is this human?!",
