@@ -1,6 +1,7 @@
 from telegram.client import Telegram
 from datetime import datetime
 from manager import Message
+from secrets import API_ID, API_HASH, PHONE, DATABASE_ENCRYPTION_KEY
 import logging
 
 logging.basicConfig(filename='./logs/app.log', filemode='w', format='%(name)s - %(levelname)s - %(message)s')
@@ -8,10 +9,10 @@ logger = logging.getLogger("root")
 logger.warning('This is a Warning')
 
 tg = Telegram(
-    api_id="649592",
-    api_hash="5f8054cf94fa09a99de547f7013600ab",
-    phone="+989211373922",
-    database_encryption_key="changekey123",
+    api_id=API_ID,
+    api_hash=API_HASH,
+    phone=PHONE,
+    database_encryption_key=DATABASE_ENCRYPTION_KEY,
 )
 
 me = 715550983 #Bot ID

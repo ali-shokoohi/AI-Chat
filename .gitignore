@@ -2,6 +2,7 @@
 logs/*
 database/*
 *.pyc
+secrets.py
 
 # Igoner Directories
 .venv/
