@@ -1,6 +1,6 @@
 from telegram.client import Telegram
 from datetime import datetime
-from data_manager import Data
+from manager import Message
 import logging
 
 logging.basicConfig(filename='./logs/app.log', filemode='w', format='%(name)s - %(levelname)s - %(message)s')
@@ -16,9 +16,7 @@ tg = Telegram(
 
 me = 715550983 #Bot ID
 
-data_m = Data()
-
-data = {}
+message = Message()
 
 def main():
     tg.login()
@@ -26,21 +24,6 @@ def main():
     # otherwise the message will not be sent
     result = tg.get_chats()
     result.wait()
-
-    #New data
-    def new_data(message):
-        try:
-            message_id = message["id"]
-            message_date = message["date"]
-            reply_to_message_id = message["reply_to_message_id"]
-            message_text = message["content"]["text"]["text"]
-            data_m.insert(id=message_id, text=message_text,
-                            date=message_date, reply_to_id=reply_to_message_id)
-
-            return True
-        except Exception as e:
-            logger.error("A exeption has been found:", exc_info=True)
-            return False
 
     #Check the chat_id is for groups or private chats
     def is_private(chat_id):
@@ -55,11 +38,12 @@ def main():
     def message_handler(update):
         user_id = update["message"]["sender_user_id"]
         chat_id = update["message"]["chat_id"]
-        message = update["message"]
-        if (user_id != me) and new_data(message):
-            reply_to_message_id = message["reply_to_message_id"]
-            message_content = message["content"].get("text", {})
-            message_text = message_content.get("text", "").lower()
+        message_entry = update["message"]
+        if (user_id != me):
+            message.load(message_entry)
+            message.save()
+            reply_to_message_id = message.reply_to_id
+            message_text = message.text
             logger.warning(f"A text message has been received from {chat_id} at {datetime.now()} and that is:\n{message_text}")
             if reply_to_message_id > 0:
                 answer = "Hello human as reply!"
@@ -101,7 +85,6 @@ def main():
     
     #A function for handlling new messages
     def new_message_handler(update):
-        logger.warning(str(data))
         message_type = update["message"]["content"]["@type"]
         if message_type == "messageText":#If message is a text
             message_handler(update)
