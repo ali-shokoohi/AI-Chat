@@ -7,3 +7,4 @@ secrets.py
 # Igoner Directories
 .venv/
 .vscode/
+.idea/
