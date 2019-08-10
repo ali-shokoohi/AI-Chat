@@ -1,14 +1,18 @@
 import sqlite3
+import json
+
+STORE_LOCATION = 'tmp/'
 
 
 class Message:
-    def __init__(self, id=0, text="", date=0.0, reply_to_id=0):
+    def __init__(self, id=0, chat_id=0, text="", date=0.0, reply_to_id=0):
         # Create new Message object
         self.id = id
+        self.chat_id = chat_id
         self.text = text
         self.date = date
         self.reply_to_id = reply_to_id
-    
+
     def __str__(self):
         return f"<Message Object {self.id}>"
 
@@ -16,25 +20,23 @@ class Message:
         if many:
             # Return multi message objects from a list
             result = list()
-            m_dict = dict()
             for msg_o in msg:
-                m_dict["id"] = msg_o["id"]
-                m_dict["date"] = msg_o["date"]
-                m_dict["reply_to_id"] = msg_o["reply_to_message_id"]
-                m_dict["text"] = msg_o["content"]["text"]["text"]
-#                Use This method again for load m_dict to a Message object
                 message = Message()
-                message.load(m_dict)
+                message.load(msg_o)
                 result.append(message)
             return result
         else:
             # Load Message object from a dictionary
-            self.id = msg["id"]
-            self.date = msg["date"]
-            self.reply_to_id = msg["reply_to_message_id"]
-            self.text = msg["content"]["text"]["text"]
-            return self
-    
+            try:
+                self.id = msg["id"]
+                self.chat_id = msg["chat_id"]
+                self.date = msg["date"]
+                self.reply_to_id = msg["reply_to_message_id"]
+                self.text = msg["content"]["text"]["text"]
+                return self
+            except KeyError:
+                pass
+
     def dump(self, messages=None, many=False):
         if many:
             # Return a list of dictionaries from multi message objects
@@ -46,6 +48,7 @@ class Message:
             # Convert Message object to a dictionary
             msg = {
                 "id": self.id,
+                "chat_id": self.chat_id,
                 "date": self.date,
                 "reply_to_message_id": self.reply_to_id,
                 "content": {
@@ -56,7 +59,8 @@ class Message:
             }
             return msg
 
-    def get(self, id=0, all=False):
+    @staticmethod
+    def get(id=0, all=False):
         data = Data()
         if all:
             # Return all messages
@@ -85,7 +89,7 @@ class Data:
 
         # Create messages table if not exists
         self.c.execute('''CREATE TABLE IF NOT EXISTS messages
-             (pk INTEGER PRIMARY KEY AUTOINCREMENT, id INTEGER, text TEXT, date REAL, reply_to_id INTEGER)''')
+             (pk INTEGER PRIMARY KEY AUTOINCREMENT, id INTEGER, chat_id INTEGER, text TEXT, date REAL, reply_to_id INTEGER)''')
 
     def insert(self, message, many=False):
         if many:
@@ -98,11 +102,11 @@ class Data:
         else:
             # Insert new message object to messages table
             self.c.execute(f"""INSERT INTO messages (
-                id, text, date, reply_to_id
+                id, chat_id, text, date, reply_to_id
             ) VALUES (
-                '{message.id}', '{message.text}', '{message.date}', '{message.reply_to_id}'
+                '{message.id}', {message.chat_id}, '{message.text}', '{message.date}', '{message.reply_to_id}'
                 )"""
-            )
+                           )
             # Commit insert
             self.conn.commit()
             self.conn.close()
@@ -119,10 +123,37 @@ class Data:
         fetchall = self.c.fetchall()
         result = list()
         for fetch in fetchall:
-            message = Message(id=fetch[1], text=fetch[2], date=fetch[3], reply_to_id=fetch[4])
+            message = Message(id=fetch[1], chat_id=fetch[2], text=fetch[3], date=fetch[4], reply_to_id=fetch[5])
             result.append(message)
         self.conn.close()
         return result
+
+
 #    This method really useless
 #    def __exit__(self):
 #        self.conn.close()
+
+
+# Execute admin's commands
+def admin_workspace(message_entry):
+    message = Message()
+    response = dict()
+    command = message_entry["content"]["text"]["text"]
+    try:
+        if command == "/get_all":
+            all_messages = Message.get(all=True)
+            all_messages_dump = message.dump(messages=all_messages, many=True)
+            with open(STORE_LOCATION + 'all_messages.json', 'w') as f:
+                json.dump(obj=all_messages_dump, fp=f, indent=4)
+                f.close()
+            response["status"] = "ok"
+            response["info"] = f"All messages saved in: {STORE_LOCATION}all_messages.json"
+        # elif command == "...":
+            # response = ...
+        else:
+            response["status"] = "bad"
+            response["error"] = "Your command is undefined!"
+    except Exception as error:
+        response["status"] = "bad"
+        response["error"] = error
+    return response

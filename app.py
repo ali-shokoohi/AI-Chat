@@ -1,6 +1,6 @@
 from telegram.client import Telegram
 from datetime import datetime
-from manager import Message
+from manager import Message, admin_workspace
 from secrets import API_ID, API_HASH, PHONE, DATABASE_ENCRYPTION_KEY
 import logging
 
@@ -16,6 +16,8 @@ tg = Telegram(
 )
 
 me = 715550983  # Bot ID
+
+admins = {"ali": 554868848}
 
 message = Message()
 
@@ -35,12 +37,28 @@ def main():
 #           return False
         else:
             return True
-    
+
 #    Text message handler
     def message_handler(update):
         user_id = update["message"]["sender_user_id"]
         chat_id = update["message"]["chat_id"]
         message_entry = update["message"]
+        # When admin send a command as a private message
+        if (user_id in admins.values()) and (chat_id in admins.values()):
+            response = admin_workspace(message_entry)
+            status = response["status"]
+            if status == "ok":
+                info = response["info"]
+                text = f"Well done:\n{info}"
+            else:
+                error = response["error"]
+                text = f"A error has been detected:\n{error}"
+            tg.send_message(
+                chat_id=user_id,
+                text=text
+            )
+            return None
+
         if user_id != me:
             message.load(message_entry)
             message.save()
@@ -102,10 +120,10 @@ def main():
 
     logger.warning(result.update)
     tg.add_message_handler(new_message_handler)
-    tg.idle()  # blocking waiting for CTRL+C
 
 # Run bot
 
 
 if __name__ == "__main__":
     main()
+    tg.idle()  # blocking waiting for CTRL+C
