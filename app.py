@@ -25,19 +25,19 @@ message = Message()
 def main():
     # if this is the first run, library needs to preload all chats
     # otherwise the message will not be sent
-#    Check the chat_id is for groups or private chats
+    #    Check the chat_id is for groups or private chats
     def is_private(chat_id):
         if str(chat_id)[0] == '-':
             return False
-#       elif ...:
-#           return False
+        #       elif ...:
+        #           return False
         else:
             return True
 
-#    Text message handler
+    #    Text message handler
     def message_handler(update):
         message.load(update)
-        user_id = update["from_user"]["id"]
+        user_id = update.from_user.id
         # When admin send a command as a private message
         if (user_id == message.chat_id) and (user_id in admins.values()):
             response = admin_workspace(message)
@@ -45,13 +45,21 @@ def main():
             if status == "ok":
                 info = response["info"]
                 text = f"Well done:\n{info}"
+                if "file" in response:
+                    file = response["file"]
+                    app.send_document(
+                        chat_id=message.chat_id,
+                        document=file,
+                        caption=text,
+                        reply_to_message_id=message.id
+                    )
             else:
                 error = response["error"]
                 text = f"A error has been detected:\n{error}"
-            app.send_message(
-                chat_id=user_id,
-                text=text
-            )
+                app.send_message(
+                    chat_id=user_id,
+                    text=text
+                )
             return None
 
         if user_id != me:
@@ -66,28 +74,24 @@ def main():
                 app.send_message(
                     chat_id=message.chat_id,
                     text=answer,
+                    reply_to_message_id=message.id
                 )
-    
-#    Photo message handler
+
+    #    Photo message handler
     def photo_handler(update):
-        user_id = update["message"]["sender_user_id"]
-        chat_id = update["message"]["chat_id"]
+        user_id = update.from_user.id
+        chat_id = update.chat.id
         if user_id != me:
-            photo_content = update["message"]["content"].get("photo", {})
-            photo_id = photo_content.get("id", "").lower()
-            warn = f"A photo update has been received from {chat_id} at {datetime.now()} and ID of that is:{photo_id}"
-            logger.warning(warn)
-            
             if is_private(chat_id):
                 app.send_message(
                     chat_id=chat_id,
                     text="Nice picture human!",
                 )
-    
-#    Unknown message handler
+
+    #    Unknown message handler
     def unknown_handler(update):
-        user_id = update["message"]["sender_user_id"]
-        chat_id = update["message"]["chat_id"]
+        user_id = update.from_user.id
+        chat_id = update.chat.id
         if user_id != me:
             logger.warning(f"A unknown message has been received from {chat_id} at {datetime.now()}")
             if is_private(chat_id):
@@ -95,23 +99,24 @@ def main():
                     chat_id=chat_id,
                     text="What is this human?!",
                 )
-    
-#    A function for handling new messages
+
+    #    A function for handling new messages
     def new_message_handler(client, update):
-        logger.warning(update)
         # Check type of message
         if update.text:  # If message is a text
             return message_handler(update)
-        elif ("media" in update) and (update["media"] is True):  # If message type is media
-            if "photo" in update:
+        elif update.media:  # If message type is media
+            if update.photo:
                 return photo_handler(update)
-#               elif message_type == ...:
-#                   return ..._handler(update)
+        #               elif message_type == ...:
+        #                   return ..._handler(update)
         else:  # If message has a unknown type
-            return  unknown_handler(update)
+            logger.warning(update)
+            return unknown_handler(update)
 
     handler = MessageHandler(new_message_handler)
     app.add_handler(handler)
+
 
 # Run bot
 

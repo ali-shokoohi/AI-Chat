@@ -137,13 +137,15 @@ def admin_workspace(message):
     command = message.text
     try:
         if command == "/get_all":
+            file_location = STORE_LOCATION+"all_messages.json"
             all_messages = Message.get(all=True)
             all_messages_dump = message.dump(messages=all_messages, many=True)
-            with open(STORE_LOCATION + 'all_messages.json', 'w', encoding='utf-8') as f:
+            with open(file=file_location, mode='w', encoding='utf-8') as f:
                 json.dump(obj=all_messages_dump, fp=f, indent=4)
                 f.close()
             response["status"] = "ok"
-            response["info"] = f"All messages saved in: {STORE_LOCATION}all_messages.json"
+            response["info"] = f"All messages saved in: {file_location}"
+            response["file"] = file_location
         # elif command == "...":
             # response = ...
         else:
