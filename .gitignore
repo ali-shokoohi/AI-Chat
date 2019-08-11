@@ -4,6 +4,7 @@ database/*
 tmp/*
 *.pyc
 secrets.py
+my_account.session
 
 # Igoner Directories
 .venv/

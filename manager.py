@@ -28,11 +28,12 @@ class Message:
         else:
             # Load Message object from a dictionary
             try:
-                self.id = msg["id"]
-                self.chat_id = msg["chat_id"]
-                self.date = msg["date"]
-                self.reply_to_id = msg["reply_to_message_id"]
-                self.text = msg["content"]["text"]["text"]
+                self.id = msg.message_id
+                self.chat_id = msg.chat.id
+                self.date = msg.date
+                if msg.reply_to_message:
+                    self.reply_to_id = msg.reply_to_message.message_id
+                self.text = msg.text
                 return self
             except KeyError:
                 pass
@@ -51,11 +52,7 @@ class Message:
                 "chat_id": self.chat_id,
                 "date": self.date,
                 "reply_to_message_id": self.reply_to_id,
-                "content": {
-                    "text": {
-                        "text": self.text
-                    }
-                }
+                "text": self.text
             }
             return msg
 
@@ -89,7 +86,7 @@ class Data:
 
         # Create messages table if not exists
         self.c.execute('''CREATE TABLE IF NOT EXISTS messages
-             (pk INTEGER PRIMARY KEY AUTOINCREMENT, id INTEGER, chat_id INTEGER, text TEXT, date REAL, reply_to_id INTEGER)''')
+             (pk INTEGER PRIMARY KEY AUTOINCREMENT, id INTEGER, chat_id INTEGER, text TEXT, date TEXT, reply_to_id INTEGER)''')
 
     def insert(self, message, many=False):
         if many:
@@ -135,15 +132,14 @@ class Data:
 
 
 # Execute admin's commands
-def admin_workspace(message_entry):
-    message = Message()
+def admin_workspace(message):
     response = dict()
-    command = message_entry["content"]["text"]["text"]
+    command = message.text
     try:
         if command == "/get_all":
             all_messages = Message.get(all=True)
             all_messages_dump = message.dump(messages=all_messages, many=True)
-            with open(STORE_LOCATION + 'all_messages.json', 'w') as f:
+            with open(STORE_LOCATION + 'all_messages.json', 'w', encoding='utf-8') as f:
                 json.dump(obj=all_messages_dump, fp=f, indent=4)
                 f.close()
             response["status"] = "ok"
